@@ -3,11 +3,10 @@ const postsService = require('../services/posts.service');
 // Create Post (Stamp)
 exports.createPost = async (req, res) => {
   try {
-    const { author_id, content } = req.body;
-
-    if (!author_id || !content) {
-      return res.status(400).json({ error: 'author_id and content required' });
-    }
+    // author comes from middleware - trusted
+    const author_id = req.profile.id;
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ error: 'content required' });
 
     const result = await postsService.createPost(author_id, content);
     return res.status(201).json(result);

@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 
 const postsController = require('../controllers/posts.controller');
+const auth = require('../middleware/auth.middleware');
 
-// Create a post (Stamp)
-router.post('/', postsController.createPost);
+// Create a post (Stamp) — protected
+router.post('/', auth, postsController.createPost);
 
 // Get all posts (Feed)
 router.get('/', postsController.getPosts);

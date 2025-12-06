@@ -1,11 +1,13 @@
 const likesService = require('../services/likes.service');
 
+// Toggle Like (Clap)
 exports.toggleLike = async (req, res) => {
   try {
-    const { post_id, user_id } = req.body;
+    const { post_id } = req.body;
+    const user_id = req.profile.id;    // TRUSTED user id from middleware
 
-    if (!post_id || !user_id) {
-      return res.status(400).json({ error: 'post_id and user_id are required' });
+    if (!post_id) {
+      return res.status(400).json({ error: 'post_id required' });
     }
 
     const result = await likesService.toggleLike(post_id, user_id);
@@ -17,6 +19,7 @@ exports.toggleLike = async (req, res) => {
   }
 };
 
+// Get Likes Count
 exports.getLikesCount = async (req, res) => {
   try {
     const postId = req.params.postId;

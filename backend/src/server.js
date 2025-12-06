@@ -10,11 +10,13 @@ app.use(express.json());
 const postsRoutes = require('./routes/posts.routes');
 const commentsRoutes = require('./routes/comments.routes');
 const likesRoutes = require('./routes/likes.routes');
+const authRoutes = require('./routes/auth.routes');
 
 // 👉 USE THE ROUTES (this makes /api/posts work)
 app.use('/api/posts', postsRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/likes', likesRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health route
 app.get('/health', (req, res) => {
