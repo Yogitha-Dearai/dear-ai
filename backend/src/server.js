@@ -6,6 +6,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 👉 ADD THIS (import routes)
+const postsRoutes = require('./routes/posts.routes');
+const commentsRoutes = require('./routes/comments.routes');
+const likesRoutes = require('./routes/likes.routes');
+
+// 👉 USE THE ROUTES (this makes /api/posts work)
+app.use('/api/posts', postsRoutes);
+app.use('/api/comments', commentsRoutes);
+app.use('/api/likes', likesRoutes);
+
 // Health route
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
