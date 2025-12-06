@@ -11,12 +11,14 @@ const postsRoutes = require('./routes/posts.routes');
 const commentsRoutes = require('./routes/comments.routes');
 const likesRoutes = require('./routes/likes.routes');
 const authRoutes = require('./routes/auth.routes');
+const feedRoutes = require('./routes/feed.routes');
 
 // 👉 USE THE ROUTES (this makes /api/posts work)
 app.use('/api/posts', postsRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/feed', feedRoutes);
 
 // Health route
 app.get('/health', (req, res) => {

@@ -29,3 +29,14 @@ exports.getCommentsByPost = async (postId) => {
   }
   return data;
 };
+
+exports.getCommentsCount = async (postId) => {
+  const { data, error } = await supabase
+    .from('comments')
+    .select('id', { count: 'exact' })
+    .eq('post_id', postId);
+
+  if (error) throw error;
+
+  return { count: data.length || 0 };
+};

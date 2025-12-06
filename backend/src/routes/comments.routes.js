@@ -9,5 +9,6 @@ router.post('/', auth, commentsController.createComment);
 
 // Get comments for a post
 router.get('/post/:postId', commentsController.getCommentsByPost);
+router.get('/count/:postId', commentsController.getCommentsCount);
 
 module.exports = router;

@@ -32,3 +32,15 @@ exports.getCommentsByPost = async (req, res) => {
     return res.status(500).json({ error: 'Server error' });
   }
 };
+
+// Get comment count
+exports.getCommentsCount = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const result = await commentsService.getCommentsCount(postId);
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('getCommentsCount error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
