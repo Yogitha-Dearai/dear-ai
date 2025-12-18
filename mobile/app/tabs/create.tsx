@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, TextInput, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { supabase } from "../../lib/supabase";
 
 export default function CreateScreen() {
   const [text, setText] = useState("");
@@ -8,20 +9,31 @@ export default function CreateScreen() {
   const router = useRouter();
 
   const submitStamp = async () => {
-    
     if (!text.trim()) {
-      alert("Empty stamp");
+      Alert.alert("Empty stamp", "Write something first");
       return;
     }
 
     setLoading(true);
     try {
+      // ✅ Get Supabase session properly
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
+
+      if (sessionError || !sessionData.session) {
+        Alert.alert("Auth error", "Please login again");
+        setLoading(false);
+        return;
+      }
+
+      const accessToken = sessionData.session.access_token;
+
       const res = await fetch("http://127.0.0.1:3000/api/posts", {
         method: "POST",
         headers: {
- 	 "Content-Type": "application/json",
- 	 "Authorization": `Bearer ${localStorage.getItem("sb-access-token")}`,
-	},
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           content: text.trim(),
         }),
@@ -34,8 +46,8 @@ export default function CreateScreen() {
       setText("");
       router.back(); // go back to feed
     } catch (err) {
-      console.log("POST ERROR:", err);
-      alert("POST ERROR");
+      console.error("POST ERROR:", err);
+      Alert.alert("Error", "Could not post stamp");
     } finally {
       setLoading(false);
     }
@@ -58,7 +70,7 @@ export default function CreateScreen() {
         }}
       />
 
-      {/* 🔥 WEB-SAFE CLICKABLE DIV */}
+      {/* Web-safe clickable button */}
       <div
         onClick={submitStamp}
         style={{

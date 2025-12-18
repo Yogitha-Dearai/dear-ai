@@ -1,22 +1,25 @@
 // src/middleware/auth.middleware.js
 const supabase = require('../db/supabase');
 
-// Middleware: verify Bearer token, attach req.user (supabase auth user) and req.profile (profiles row)
+// Middleware: verify Bearer token, attach req.user (supabase auth user)
+// and ensure req.profile (profiles row) exists
 module.exports = async function (req, res, next) {
   try {
     const hdr = req.headers.authorization || '';
     const token = hdr.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Missing auth token' });
+    if (!token) {
+      return res.status(401).json({ error: 'Missing auth token' });
+    }
 
-    // Ask Supabase who this token belongs to
+    // Verify token with Supabase
     const { data, error } = await supabase.auth.getUser(token);
     if (error || !data || !data.user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    req.user = data.user; // supabase auth user (contains id = auth_id)
+    req.user = data.user; // Supabase auth user (auth_id)
 
-    // fetch profile row for this auth user
+    // Try to fetch profile
     const { data: profiles, error: pErr } = await supabase
       .from('profiles')
       .select('*')
@@ -28,12 +31,28 @@ module.exports = async function (req, res, next) {
       return res.status(500).json({ error: 'Server error' });
     }
 
+    // If profile does NOT exist → auto-create it
     if (!profiles || profiles.length === 0) {
-      // no profile yet — create one (optional) or return 403
-      return res.status(403).json({ error: 'Profile not found for user' });
+      const { data: newProfiles, error: cErr } = await supabase
+        .from('profiles')
+        .insert({
+          auth_id: req.user.id,
+          created_at: new Date(),
+        })
+        .select()
+        .limit(1);
+
+      if (cErr || !newProfiles || newProfiles.length === 0) {
+        console.error('profile create error', cErr);
+        return res.status(500).json({ error: 'Could not create profile' });
+      }
+
+      req.profile = newProfiles[0];
+      return next();
     }
 
-    req.profile = profiles[0]; // attach profile { id, auth_id, ... }
+    // Profile exists
+    req.profile = profiles[0];
     next();
   } catch (err) {
     console.error('auth.middleware error', err);

@@ -19,6 +19,7 @@ app.use('/api/comments', commentsRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/feed', feedRoutes);
+app.use('/api/profile', require('./routes/profile.routes'));
 
 // Health route
 app.get('/health', (req, res) => {
