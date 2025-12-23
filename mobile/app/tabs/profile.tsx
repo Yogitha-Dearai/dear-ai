@@ -1,16 +1,11 @@
 import React from "react";
-import { View, Text, Pressable, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { View, Text, TouchableOpacity } from "react-native";
 import { supabase } from "../../lib/supabase";
 
 export default function ProfileScreen() {
-  const router = useRouter();
-
   const logout = async () => {
-  await supabase.auth.signOut();
-
-  // hard refresh session on web
-  window.location.href = "/login";
+    await supabase.auth.signOut();
+    window.location.href = "/login";
   };
 
   return (
@@ -23,7 +18,7 @@ export default function ProfileScreen() {
         Logged in via GitHub
       </Text>
 
-      <Pressable
+      <TouchableOpacity
         onPress={logout}
         style={{
           marginTop: 30,
@@ -36,7 +31,7 @@ export default function ProfileScreen() {
         <Text style={{ color: "#fff", fontWeight: "bold" }}>
           Logout
         </Text>
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 }
