@@ -3,6 +3,8 @@ const router = express.Router();
 const auth = require('../middleware/auth.middleware');
 const profileController = require('../controllers/profile.controller');
 
+router.get('/me', auth, profileController.getMe);
+
 router.post('/persona', auth, profileController.savePersona);
 router.post('/persona/ai', auth, profileController.generatePersonaAI);
 

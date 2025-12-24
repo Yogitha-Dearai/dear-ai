@@ -1,8 +1,15 @@
-// src/middleware/auth.middleware.js
 const supabase = require('../db/supabase');
 
-// Middleware: verify Bearer token, attach req.user (supabase auth user)
-// and ensure req.profile (profiles row) exists
+// 🔒 Hardcoded AI friend names (editable anytime)
+const AI_NAMES = [
+   // Female / Neutral
+  'Riya', 'Siya', 'Mira', 'Maya', 'Tara',
+  'Rose', 'Lily', 'Doly', 'Ella', 'Eve',
+  // Male / Neutral
+  'Arya', 'Adam', 'Ved', 'Dev', 'Neel',
+  'Alex', 'Leo', 'Mike', 'Ryan', 'Jade',
+];
+
 module.exports = async function (req, res, next) {
   try {
     const hdr = req.headers.authorization || '';
@@ -11,48 +18,44 @@ module.exports = async function (req, res, next) {
       return res.status(401).json({ error: 'Missing auth token' });
     }
 
-    // Verify token with Supabase
+    // 1️⃣ Verify token
     const { data, error } = await supabase.auth.getUser(token);
     if (error || !data || !data.user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    req.user = data.user; // Supabase auth user (auth_id)
+    req.user = data.user;
 
-    // Try to fetch profile
+    // 2️⃣ Fetch profile
     const { data: profiles, error: pErr } = await supabase
       .from('profiles')
       .select('*')
       .eq('auth_id', req.user.id)
       .limit(1);
 
-    if (pErr) {
-      console.error('profile lookup error', pErr);
-      return res.status(500).json({ error: 'Server error' });
+    if (pErr || !profiles || profiles.length === 0) {
+      return res.status(403).json({ error: 'Profile not found for user' });
     }
 
-    // If profile does NOT exist → auto-create it
-    if (!profiles || profiles.length === 0) {
-      const { data: newProfiles, error: cErr } = await supabase
+    const profile = profiles[0];
+
+    // 3️⃣ ASSIGN AI NAME ONCE (HERE IS THE FIX)
+    if (!profile.ai_name) {
+      const randomName =
+        AI_NAMES[Math.floor(Math.random() * AI_NAMES.length)];
+
+      await supabase
         .from('profiles')
-        .insert({
-          auth_id: req.user.id,
-          created_at: new Date(),
+        .update({
+          ai_name: randomName,
+          updated_at: new Date(),
         })
-        .select()
-        .limit(1);
+        .eq('id', profile.id);
 
-      if (cErr || !newProfiles || newProfiles.length === 0) {
-        console.error('profile create error', cErr);
-        return res.status(500).json({ error: 'Could not create profile' });
-      }
-
-      req.profile = newProfiles[0];
-      return next();
+      profile.ai_name = randomName; // keep req.profile consistent
     }
 
-    // Profile exists
-    req.profile = profiles[0];
+    req.profile = profile;
     next();
   } catch (err) {
     console.error('auth.middleware error', err);

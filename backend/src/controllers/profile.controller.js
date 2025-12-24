@@ -1,8 +1,42 @@
 const ai = require('../ai');
 const supabase = require('../db/supabase');
 
+// 🔒 Hardcoded AI friend names (can edit anytime)
+const AI_NAMES = [
+  // Female / Neutral
+  'Riya', 'Siya', 'Mira', 'Maya', 'Tara',
+  'Rose', 'Lily', 'Doly', 'Ella', 'Eve',
+  // Male / Neutral
+  'Arya', 'Adam', 'Ved', 'Dev', 'Neel',
+  'Alex', 'Leo', 'Mike', 'Ryan', 'Jade',
+];
+
+// Helper: assign AI name ONCE
+async function ensureAiName(profileId) {
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('ai_name')
+    .eq('id', profileId)
+    .limit(1);
+
+  if (error || !profiles || !profiles[0]) return;
+
+  if (!profiles[0].ai_name) {
+    const randomName =
+      AI_NAMES[Math.floor(Math.random() * AI_NAMES.length)];
+
+    await supabase
+      .from('profiles')
+      .update({
+        ai_name: randomName,
+        updated_at: new Date(),
+      })
+      .eq('id', profileId);
+  }
+}
+
 // -----------------------------
-// SAVE PERSONA (AUTO-TRIGGER AI)
+// SAVE PERSONA (AUTO AI + NAME)
 // -----------------------------
 exports.savePersona = async (req, res) => {
   try {
@@ -13,7 +47,10 @@ exports.savePersona = async (req, res) => {
       return res.status(400).json({ error: 'Missing persona answers' });
     }
 
-    // 1️⃣ Save raw persona answers
+    // Ensure AI name exists (safe to call multiple times)
+    await ensureAiName(profileId);
+
+    // Save persona answers
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -28,7 +65,7 @@ exports.savePersona = async (req, res) => {
       return res.status(500).json({ error: 'Could not save persona' });
     }
 
-    // 2️⃣ Auto-generate AI persona (NON-BLOCKING)
+    // Auto-generate AI persona (non-blocking)
     try {
       const { data: profiles } = await supabase
         .from('profiles')
@@ -56,7 +93,6 @@ exports.savePersona = async (req, res) => {
           .eq('id', profileId);
       }
     } catch (aiErr) {
-      // ❗ DO NOT FAIL USER FLOW IF AI FAILS
       console.error('Auto persona AI failed (non-blocking)', aiErr);
     }
 
@@ -68,11 +104,14 @@ exports.savePersona = async (req, res) => {
 };
 
 // ----------------------------------
-// MANUAL AI GENERATION (SAFE TO KEEP)
+// MANUAL AI GENERATION (KEEP)
 // ----------------------------------
 exports.generatePersonaAI = async (req, res) => {
   try {
     const profileId = req.profile.id;
+
+    // Ensure AI name exists here too (extra safety)
+    await ensureAiName(profileId);
 
     const { data: profiles, error } = await supabase
       .from('profiles')
@@ -86,7 +125,6 @@ exports.generatePersonaAI = async (req, res) => {
 
     const profile = profiles[0];
 
-    // prevent regeneration
     if (profile.persona_summary) {
       return res.json({ message: 'Persona already generated' });
     }
@@ -115,5 +153,31 @@ exports.generatePersonaAI = async (req, res) => {
   } catch (err) {
     console.error('generatePersonaAI error', err);
     res.status(500).json({ error: 'AI generation failed' });
+  }
+};
+exports.getMe = async (req, res) => {
+  try {
+    const profileId = req.profile.id;
+
+    // 🔥 ENSURE AI NAME HERE (this was missing)
+    await ensureAiName(profileId);
+
+    // Fetch fresh profile (after possible update)
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select(
+        'id, ai_name, persona_completed, persona_summary, persona_traits'
+      )
+      .eq('id', profileId)
+      .limit(1);
+
+    if (error || !profiles || !profiles[0]) {
+      return res.status(400).json({ error: 'Profile not found' });
+    }
+
+    res.json(profiles[0]);
+  } catch (err) {
+    console.error('getMe error', err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
