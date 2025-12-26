@@ -4,12 +4,30 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-exports.generate = async (prompt) => {
-  const res = await client.chat.completions.create({
+/**
+ * Generic text generation (rephrase, refine, summarize, etc.)
+ */
+async function generateText(prompt) {
+  const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.7,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You help rewrite user text clearly and naturally without changing meaning.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.4,
   });
 
-  return res.choices[0].message.content;
+  return completion.choices[0].message.content;
+}
+
+module.exports = {
+  generateText,
 };
+

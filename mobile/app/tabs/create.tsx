@@ -1,63 +1,88 @@
-import React, { useState } from "react";
-import { View, TextInput, Alert } from "react-native";
+import { useState } from "react";
+import { View, Text, TextInput, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 
 export default function CreateScreen() {
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiUsed, setAiUsed] = useState(false);
+
   const router = useRouter();
 
-  const submitStamp = async () => {
-    if (!text.trim()) {
-      Alert.alert("Empty stamp", "Write something first");
-      return;
+  const handleChange = (value: string) => {
+    setText(value);
+
+    if (value.length > 0) {
+      setShowNudge(true);
+    } else {
+      setShowNudge(false);
+      setAiUsed(false);
     }
+  };
 
-    setLoading(true);
+  const callAI = async () => {
+    if (!text.trim()) return;
+
+    setAiLoading(true);
+
     try {
-      // ✅ Get Supabase session properly
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
 
-      if (sessionError || !sessionData.session) {
-        Alert.alert("Auth error", "Please login again");
-        setLoading(false);
-        return;
-      }
-
-      const accessToken = sessionData.session.access_token;
-
-      const res = await fetch("http://127.0.0.1:3000/api/posts", {
+      const res = await fetch("http://127.0.0.1:3000/api/ai/refine", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          content: text.trim(),
+          text: text.trim(),
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Post failed");
-      }
+      const result = await res.json();
 
-      setText("");
-      router.back(); // go back to feed
+      if (result.refinedText) {
+        setText(result.refinedText);
+        setAiUsed(true);
+      }
     } catch (err) {
-      console.error("POST ERROR:", err);
-      Alert.alert("Error", "Could not post stamp");
+      console.log("AI refine error", err);
     } finally {
-      setLoading(false);
+      setAiLoading(false);
     }
+  };
+
+  const submitStamp = async () => {
+    if (!text.trim()) return;
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+
+    await fetch("http://127.0.0.1:3000/api/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content: text.trim() }),
+    });
+
+    setText("");
+    setShowNudge(false);
+    setAiUsed(false);
+    router.replace("/tabs/feed");
   };
 
   return (
     <View style={{ flex: 1, padding: 16 }}>
       <TextInput
         value={text}
-        onChangeText={setText}
+        onChangeText={handleChange}
         placeholder="Write your Stamp..."
         multiline
         style={{
@@ -70,23 +95,57 @@ export default function CreateScreen() {
         }}
       />
 
-      {/* Web-safe clickable button */}
-      <div
-        onClick={submitStamp}
+      {/* 🤖 AI ASSIST */}
+      {showNudge && (
+        <View style={{ marginTop: 10 }}>
+          {!aiUsed && (
+            <Text
+              onPress={callAI}
+              style={{
+                fontSize: 13,
+                color: "#222",
+                fontWeight: "600",
+              }}
+            >
+              {aiLoading ? "Doly is thinking…" : "Let Doly help"}
+            </Text>
+          )}
+
+          {aiUsed && (
+            <Text
+              onPress={callAI}
+              style={{
+                fontSize: 13,
+                color: "#222",
+                fontWeight: "600",
+              }}
+            >
+              {aiLoading ? "Refining…" : "Refine once more"}
+            </Text>
+          )}
+        </View>
+      )}
+
+      <Text
+        onPress={submitStamp}
         style={{
-          marginTop: 20,
-          backgroundColor: loading ? "#999" : "#2196f3",
+          marginTop: 24,
+          backgroundColor: "#222",
           padding: 14,
           borderRadius: 8,
           textAlign: "center",
           color: "white",
-          fontWeight: "bold",
-          cursor: "pointer",
-          userSelect: "none",
+          fontWeight: "600",
         }}
       >
-        {loading ? "Posting..." : "Post Stamp"}
-      </div>
+        Post Stamp
+      </Text>
+
+      {aiLoading && (
+        <View style={{ marginTop: 10 }}>
+          <ActivityIndicator size="small" />
+        </View>
+      )}
     </View>
   );
 }
