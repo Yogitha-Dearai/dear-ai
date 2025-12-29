@@ -2,28 +2,23 @@ const ai = require("../ai");
 
 exports.refineText = async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, mode } = req.body;
 
     if (!text || !text.trim()) {
       return res.status(400).json({ error: "Text is required" });
     }
 
-    const prompt = `
-Rephrase the following thought more clearly and naturally.
-Do not add new ideas. Do not make it longer.
-Keep the user's tone.
+    let result;
 
-Text:
-"${text}"
-`;
+    if (mode === "draft") {
+      result = await ai.draftPost(text);
+    } else {
+      result = await ai.refineText(text);
+    }
 
-    const result = await ai.generateText(prompt);
-
-    res.json({
-      refinedText: result.trim(),
-    });
+    res.json({ refinedText: result.trim() });
   } catch (err) {
-    console.error("AI refine error:", err);
-    res.status(500).json({ error: "AI refine failed" });
+    console.error("AI error:", err);
+    res.status(500).json({ error: "AI processing failed" });
   }
 };

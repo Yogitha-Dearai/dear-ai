@@ -1,18 +1,20 @@
 const persona = require("./persona.generator");
-const openaiProvider = require("./providers/openai.provider");
+const provider = require("./providers/openai.provider");
 
-// Persona generation (already used)
 async function generatePersona(answers) {
   return persona.generatePersona(answers);
 }
 
-// 🔥 Text refinement (NEW, required for Day 19)
-async function generateText(prompt) {
-  return openaiProvider.generateText(prompt);
+async function refineText(text) {
+  return provider.refineText(text);
+}
+
+async function draftPost(topic) {
+  return provider.draftPost(topic);
 }
 
 module.exports = {
   generatePersona,
-  generateText,
+  refineText,
+  draftPost,
 };
-

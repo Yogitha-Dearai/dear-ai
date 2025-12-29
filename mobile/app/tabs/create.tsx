@@ -3,26 +3,17 @@ import { View, Text, TextInput, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 
+type Mode = "manual" | "ai";
+
 export default function CreateScreen() {
+  const [mode, setMode] = useState<Mode>("manual");
   const [text, setText] = useState("");
-  const [showNudge, setShowNudge] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiUsed, setAiUsed] = useState(false);
 
   const router = useRouter();
 
-  const handleChange = (value: string) => {
-    setText(value);
-
-    if (value.length > 0) {
-      setShowNudge(true);
-    } else {
-      setShowNudge(false);
-      setAiUsed(false);
-    }
-  };
-
-  const callAI = async () => {
+  const callAI = async (instruction: "refine" | "draft") => {
     if (!text.trim()) return;
 
     setAiLoading(true);
@@ -40,6 +31,7 @@ export default function CreateScreen() {
         },
         body: JSON.stringify({
           text: text.trim(),
+          mode: instruction, // 🔥 THIS IS THE FIX
         }),
       });
 
@@ -50,7 +42,7 @@ export default function CreateScreen() {
         setAiUsed(true);
       }
     } catch (err) {
-      console.log("AI refine error", err);
+      console.log("AI error", err);
     } finally {
       setAiLoading(false);
     }
@@ -73,20 +65,54 @@ export default function CreateScreen() {
     });
 
     setText("");
-    setShowNudge(false);
     setAiUsed(false);
     router.replace("/tabs/feed");
   };
 
   return (
     <View style={{ flex: 1, padding: 16 }}>
+      {/* MODE TOGGLE */}
+      <View style={{ flexDirection: "row", marginBottom: 16 }}>
+        <Text
+          onPress={() => {
+            setMode("manual");
+            setText("");
+            setAiUsed(false);
+          }}
+          style={{
+            marginRight: 16,
+            fontWeight: mode === "manual" ? "700" : "400",
+          }}
+        >
+          ✍️ Write myself
+        </Text>
+
+        <Text
+          onPress={() => {
+            setMode("ai");
+            setText("");
+            setAiUsed(false);
+          }}
+          style={{
+            fontWeight: mode === "ai" ? "700" : "400",
+          }}
+        >
+          🤖 Ask Doly
+        </Text>
+      </View>
+
+      {/* INPUT */}
       <TextInput
         value={text}
-        onChangeText={handleChange}
-        placeholder="Write your Stamp..."
+        onChangeText={setText}
+        placeholder={
+          mode === "manual"
+            ? "Write your Stamp..."
+            : "What do you want to post about today?"
+        }
         multiline
         style={{
-          minHeight: 120,
+          minHeight: 150,
           borderColor: "#ddd",
           borderWidth: 1,
           borderRadius: 8,
@@ -95,37 +121,38 @@ export default function CreateScreen() {
         }}
       />
 
-      {/* 🤖 AI ASSIST */}
-      {showNudge && (
+      {/* AI ACTIONS */}
+      {text.length > 0 && (
         <View style={{ marginTop: 10 }}>
-          {!aiUsed && (
+          {mode === "manual" && (
             <Text
-              onPress={callAI}
-              style={{
-                fontSize: 13,
-                color: "#222",
-                fontWeight: "600",
-              }}
+              onPress={() => callAI("refine")}
+              style={{ fontSize: 13, fontWeight: "600" }}
             >
-              {aiLoading ? "Doly is thinking…" : "Let Doly help"}
+              {aiLoading
+                ? "Doly is refining…"
+                : aiUsed
+                ? "Refine once more"
+                : "Refine with Doly"}
             </Text>
           )}
 
-          {aiUsed && (
+          {mode === "ai" && (
             <Text
-              onPress={callAI}
-              style={{
-                fontSize: 13,
-                color: "#222",
-                fontWeight: "600",
-              }}
+              onPress={() => callAI("draft")}
+              style={{ fontSize: 13, fontWeight: "600" }}
             >
-              {aiLoading ? "Refining…" : "Refine once more"}
+              {aiLoading
+                ? "Doly is drafting…"
+                : aiUsed
+                ? "Refine again"
+                : "Ask Doly to draft"}
             </Text>
           )}
         </View>
       )}
 
+      {/* POST BUTTON */}
       <Text
         onPress={submitStamp}
         style={{
