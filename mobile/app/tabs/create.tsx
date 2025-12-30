@@ -72,8 +72,9 @@ export default function CreateScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          text: text.trim(),
-          mode: instruction,
+        text: text.trim(),
+        mode: instruction,
+        explicit_refine: instruction === "refine", // 👈 ADD THIS LINE
         }),
       });
 

@@ -101,10 +101,25 @@ exports.refineText = async (req, res) => {
     }
 
     // ✍️ REFINE MODE (NO persona influence)
-    if (mode !== "draft") {
-      const refined = await ai.refineText(text);
-      return res.json({ refinedText: refined.trim() });
-    }
+  if (mode !== "draft") {
+  const refined = await ai.refineText(text);
+  
+// Day 24 – Step 4.1: log refine ONLY if explicitly triggered
+if (req.body.explicit_refine === true) {
+  (async () => {
+    try {
+      await supabase.from('persona_behavior_logs').insert({
+        auth_id: req.user.id,
+        signal_type: 'ai_used',
+        signal_value: 'refine',
+      });
+    } catch (_) {}
+  })();
+}
+
+  return res.json({ refinedText: refined.trim() });
+  }
+
 
     // 🤖 DRAFT MODE (WITH persona influence)
     const { data: profiles, error } = await supabase
@@ -132,6 +147,17 @@ Topic:
 `;
 
     const drafted = await ai.draftPost(prompt);
+
+    // Day 24 – Step 3.2: log Ask Doly usage (fire-and-forget)
+(async () => {
+  try {
+    await supabase.from('persona_behavior_logs').insert({
+      auth_id: req.user.id,
+      signal_type: 'ai_used',
+      signal_value: 'ask_doly',
+    });
+  } catch (_) {}
+})();
 
     res.json({ refinedText: drafted.trim() });
   } catch (err) {
