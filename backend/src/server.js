@@ -6,22 +6,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 👉 ADD THIS (import routes)
+// 👉 ROUTES
 const postsRoutes = require('./routes/posts.routes');
 const commentsRoutes = require('./routes/comments.routes');
 const likesRoutes = require('./routes/likes.routes');
 const authRoutes = require('./routes/auth.routes');
 const feedRoutes = require('./routes/feed.routes');
-const aiRoutes = require("./routes/ai.routes");
+const aiRoutes = require('./routes/ai.routes');
+const profileRoutes = require('./routes/profile.routes');
+const visitorPersonaRoutes = require('./routes/visitorPersona.routes');
 
-// 👉 USE THE ROUTES (this makes /api/posts work)
+// 👉 USE ROUTES
 app.use('/api/posts', postsRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/feed', feedRoutes);
-app.use('/api/profile', require('./routes/profile.routes'));
-app.use("/api/ai", aiRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/persona/visitor', visitorPersonaRoutes);
 
 // Health route
 app.get('/health', (req, res) => {
