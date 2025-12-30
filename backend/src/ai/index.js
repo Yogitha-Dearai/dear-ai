@@ -9,8 +9,8 @@ async function refineText(text) {
   return provider.refineText(text);
 }
 
-async function draftPost(topic) {
-  return provider.draftPost(topic);
+async function draftPost(prompt) {
+  return provider.draftPost(prompt);
 }
 
 module.exports = {
