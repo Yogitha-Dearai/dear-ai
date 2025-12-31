@@ -1,5 +1,6 @@
 const ai = require("../ai");
 const supabase = require("../db/supabase");
+const { getPersonaPulse } = require("../services/personaPulse.service");
 
 /**
  * Convert human-readable persona traits (array of adjectives)
@@ -136,9 +137,20 @@ if (req.body.explicit_refine === true) {
     const normalizedTraits = normalizeTraits(rawTraits);
     const toneGuide = buildToneGuide(normalizedTraits);
 
+    // 🟢 Day 25: apply persona pulse (soft influence)
+    const pulse = await getPersonaPulse(req.user.id);
+
+    let pulseHint = "";
+    if (pulse?.writing_confidence === "growing") {
+    pulseHint = "Let the user’s own voice lead. Be subtle and restrained.";
+    } else if (pulse?.ai_reliance === "high") {
+    pulseHint = "Offer structure, but avoid over-polishing or dominating the voice.";
+    }
+
     const prompt = `
 Write a thoughtful, human social post based on the topic below.
 ${toneGuide}
+${pulseHint}
 Use natural paragraphs.
 Do NOT mention AI or tools.
 
